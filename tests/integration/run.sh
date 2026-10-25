@@ -75,9 +75,11 @@ kubectl -n argocd create secret generic registry-creds --from-literal=type=oci \
   --from-literal=url=oci://registry.registry.svc/demo --from-literal=username="$registry_user" \
   --from-literal=password="$registry_password"
 kubectl -n argocd label secret registry-creds argocd.argoproj.io/secret-type=repo-creds
-# The registry's certificate, keyed by host, before the repo-server starts.
+# The registry's certificate, keyed by host; the repo-server restarts so its first pull already trusts it.
 kubectl -n argocd patch configmap argocd-tls-certs-cm --type merge \
   -p "$(python3 -c 'import json,sys; print(json.dumps({"data": {"registry.registry.svc": open(sys.argv[1]).read()}}))' "$work/tls.crt")"
+kubectl -n argocd rollout status deployment/argocd-repo-server --timeout=300s
+kubectl -n argocd rollout restart deployment/argocd-repo-server
 
 echo "== generator"
 kubectl -n argocd create secret generic registry-ca --from-file=ca.crt="$work/tls.crt"
@@ -98,8 +100,9 @@ annotation() { kubectl -n argocd get application demo-app-001 -o jsonpath="{.met
 [[ $(annotation digest) == "$digest" ]] || { echo "digest: $(annotation digest) != $digest" >&2; exit 1; }
 [[ $(annotation version) == 1.0.0 ]] || { echo "version annotation: $(annotation version)" >&2; exit 1; }
 [[ $(annotation content) == "$(cat "$work/artifact/config.json")" ]] || { echo "content: $(annotation content)" >&2; exit 1; }
-wait_for 300 "the Application to sync" bash -c \
-  '[[ $(kubectl -n argocd get application demo-app-001 -o jsonpath="{.status.sync.status}/{.status.health.status}") == Synced/Healthy ]]' \
+# A comparison that failed once is retried on refresh; the loop asks for one each time it looks.
+wait_for 600 "the Application to sync" bash -c \
+  'kubectl -n argocd annotate application demo-app-001 argocd.argoproj.io/refresh=normal --overwrite >/dev/null; [[ $(kubectl -n argocd get application demo-app-001 -o jsonpath="{.status.sync.status}/{.status.health.status}") == Synced/Healthy ]]' \
   || { kubectl -n argocd get application demo-app-001 -o jsonpath='{.status.conditions}{"\n"}{.status.operationState.message}{"\n"}' >&2; exit 1; }
 [[ $(kubectl get configmap demo-app-001 -o jsonpath='{.data.from}') == "the artifact" ]]
 echo "ok: demo-app-001 generated from registry.registry.svc/demo/app-001:1.0.0 and synced"
