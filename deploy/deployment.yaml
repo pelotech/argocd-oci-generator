@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: generator
-          image: ghcr.io/pelotech/argocd-oci-generator:0.1.0
+          image: ghcr.io/pelotech/argocd-oci-generator:0.1.0 # x-release-please-version
           envFrom:
             - secretRef:
                 name: argocd-oci-generator

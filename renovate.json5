@@ -1,0 +1,24 @@
+// config:best-practices pins GitHub Actions and Docker images to digests. Go modules, the Dockerfile stages,
+// the integration manifests and the Argo CD version of the kind test are kept current; the image this repository
+// publishes is bumped by release-please, not Renovate.
+{
+  $schema: 'https://docs.renovatebot.com/renovate-schema.json',
+  extends: ['config:best-practices'],
+  dependencyDashboard: true,
+  'pre-commit': { enabled: true },
+  kubernetes: { managerFilePatterns: ['/^tests/integration/manifests/.*\\.yaml$/', '/^deploy/.*\\.yaml$/'] },
+  customManagers: [
+    {
+      customType: 'regex',
+      description: 'The Argo CD release the kind test installs',
+      managerFilePatterns: ['/^tests/integration/run\\.sh$/'],
+      matchStrings: ['ARGOCD_VERSION:-(?<currentValue>v[0-9.]+)'],
+      depNameTemplate: 'argoproj/argo-cd',
+      datasourceTemplate: 'github-releases',
+    },
+  ],
+  packageRules: [
+    { description: 'release-please owns the version of the published image', matchPackageNames: ['ghcr.io/pelotech/argocd-oci-generator'], enabled: false },
+    { description: 'One PR for the registry client', matchPackageNames: ['oras.land/oras-go/v2', 'github.com/opencontainers/image-spec'], groupName: 'oras' },
+  ],
+}

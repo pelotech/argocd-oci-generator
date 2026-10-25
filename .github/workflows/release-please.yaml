@@ -1,0 +1,47 @@
+name: release
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      created: ${{ steps.release.outputs.release_created }}
+      tag: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        id: release
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+  # A tag release-please creates with GITHUB_TOKEN starts no other workflow, so the image is published here.
+  image:
+    needs: release-please
+    if: needs.release-please.outputs.created == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.release-please.outputs.tag }}
+      - uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      # The image tag is the release without its v, the form deploy/deployment.yaml pins.
+      - id: version
+        run: echo "tag=${TAG#v}" >> "$GITHUB_OUTPUT"
+        env:
+          TAG: ${{ needs.release-please.outputs.tag }}
+      - uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/pelotech/argocd-oci-generator:${{ steps.version.outputs.tag }}

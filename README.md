@@ -122,6 +122,12 @@ A repository whose first segment holds a dot, a colon or `localhost` is a full r
 any other is below `REGISTRY`. One generator can serve sets on several registries, each host found in
 `CREDENTIALS_FILE`; `SSL_CERT_FILE` is one bundle for all of them.
 
+## Contributing
+
+Commits and pull request titles follow Conventional Commits; release-please turns them into the changelog, the
+next tag and the published image, and bumps the image pin in `deploy/deployment.yaml`. Renovate keeps the
+dependencies, actions and base images current. `prek run --all-files` (or `pre-commit`) runs the hooks CI runs.
+
 ## Deploy
 
 `deploy/` holds the Deployment and Service. The consumer sets the namespace, the `argocd-oci-generator`
