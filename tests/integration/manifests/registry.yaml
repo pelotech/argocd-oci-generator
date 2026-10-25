@@ -17,8 +17,8 @@ spec:
     spec:
       containers:
         - name: registry
-          # The AWS mirror of the Docker Hub library, as Argo CD's own manifests use; no Docker Hub pull limits.
-          image: public.ecr.aws/docker/library/registry:3.0.0
+          # Google's mirror of the Docker Hub library: shared runners are rate limited on Docker Hub and on the AWS mirror.
+          image: mirror.gcr.io/library/registry:3.0.0
           env:
             - name: REGISTRY_AUTH
               value: htpasswd

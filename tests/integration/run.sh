@@ -69,8 +69,11 @@ digest=$(oras resolve --ca-file "$work/tls.crt" --resolve "registry.registry.svc
 
 echo "== argo cd $argocd_version"
 kubectl create namespace argocd
-# Server-side: the ApplicationSet CRD is too large for a client-side apply annotation.
-kubectl apply --server-side -n argocd -f "https://raw.githubusercontent.com/argoproj/argo-cd/$argocd_version/manifests/install.yaml" >/dev/null
+# Server-side: the ApplicationSet CRD is too large for a client-side apply annotation. The Docker Hub library
+# images come from Google's mirror: shared runners are rate limited on Docker Hub and on the AWS mirror.
+curl -fsSL "https://raw.githubusercontent.com/argoproj/argo-cd/$argocd_version/manifests/install.yaml" \
+  | sed 's#public.ecr.aws/docker/library/#mirror.gcr.io/library/#' > "$work/argocd.yaml"
+kubectl apply --server-side -n argocd -f "$work/argocd.yaml" >/dev/null
 kubectl -n argocd create secret generic registry-creds --from-literal=type=oci \
   --from-literal=url=oci://registry.registry.svc/demo --from-literal=username="$registry_user" \
   --from-literal=password="$registry_password"
