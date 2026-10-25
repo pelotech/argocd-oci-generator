@@ -17,7 +17,8 @@ spec:
     spec:
       containers:
         - name: registry
-          image: registry:3.0.0
+          # The AWS mirror of the Docker Hub library, as Argo CD's own manifests use; no Docker Hub pull limits.
+          image: public.ecr.aws/docker/library/registry:3.0.0
           env:
             - name: REGISTRY_AUTH
               value: htpasswd

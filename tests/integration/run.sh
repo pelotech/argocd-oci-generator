@@ -89,8 +89,12 @@ kubectl -n argocd create secret generic argocd-oci-generator \
   --from-literal=SSL_CERT_FILE=/etc/ssl/custom/ca.crt
 kubectl apply -k "$here/manifests/generator"
 kubectl -n argocd rollout status deployment/argocd-oci-generator --timeout=180s
-kubectl -n argocd rollout status deployment/argocd-repo-server --timeout=300s
-kubectl -n argocd rollout status deployment/argocd-applicationset-controller --timeout=300s
+# Every Argo CD part, redis included: without redis the controller and repo-server time out on each comparison.
+# Image pulls on a shared runner back off for minutes, so the wait is long.
+for d in argocd-redis argocd-repo-server argocd-applicationset-controller argocd-server; do
+  kubectl -n argocd rollout status "deployment/$d" --timeout=600s
+done
+kubectl -n argocd rollout status statefulset/argocd-application-controller --timeout=600s
 # The set comes last, so the first manifest generation runs against a repo-server that trusts the registry.
 kubectl apply -f "$here/manifests/appset.yaml"
 
