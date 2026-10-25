@@ -88,10 +88,11 @@ kubectl -n argocd create secret generic argocd-oci-generator \
   --from-literal=REGISTRY_PASSWORD="$registry_password" --from-literal=PLUGIN_TOKEN=plugin-token-for-the-test \
   --from-literal=SSL_CERT_FILE=/etc/ssl/custom/ca.crt
 kubectl apply -k "$here/manifests/generator"
-kubectl apply -f "$here/manifests/appset.yaml"
 kubectl -n argocd rollout status deployment/argocd-oci-generator --timeout=180s
 kubectl -n argocd rollout status deployment/argocd-repo-server --timeout=300s
 kubectl -n argocd rollout status deployment/argocd-applicationset-controller --timeout=300s
+# The set comes last, so the first manifest generation runs against a repo-server that trusts the registry.
+kubectl apply -f "$here/manifests/appset.yaml"
 
 echo "== assert"
 wait_for 300 "the Application demo-app-001" kubectl -n argocd get application demo-app-001
