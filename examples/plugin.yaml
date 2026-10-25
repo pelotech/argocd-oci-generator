@@ -1,0 +1,8 @@
+# The plugin reference every set names in configMapRef.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-oci-generator
+data:
+  baseUrl: http://argocd-oci-generator.argocd.svc
+  token: '$argocd-oci-generator-plugin:token'

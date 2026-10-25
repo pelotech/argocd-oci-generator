@@ -131,7 +131,9 @@ dependencies, actions and base images current. `prek run --all-files` (or `pre-c
 ## Deploy
 
 `deploy/` holds the Deployment and Service. The consumer sets the namespace, the `argocd-oci-generator`
-Secret with the environment above, and the image pin.
+Secret with the environment above, and the image pin. `examples/` is a complete installation next to Argo CD,
+the two Secrets, the plugin ConfigMap, an optional private CA and one set: fill the REPLACE values and
+`kubectl apply -k examples`.
 
 ```bash
 go test ./...

@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: argocd-oci-generator
+spec:
+  template:
+    spec:
+      containers:
+        - name: generator
+          env:
+            - name: SSL_CERT_FILE
+              value: /etc/ssl/custom/ca.crt
+          volumeMounts:
+            - name: registry-ca
+              mountPath: /etc/ssl/custom
+              readOnly: true
+      volumes:
+        - name: registry-ca
+          secret:
+            secretName: argocd-oci-generator-ca

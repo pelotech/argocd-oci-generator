@@ -1,0 +1,46 @@
+# One Application per named artifact: the newest 1.x release of each service's config artifact feeds a Helm chart
+# as a values string, and the Application name and chart release carry the service name.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: services
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - plugin:
+        configMapRef:
+          name: argocd-oci-generator
+        input:
+          parameters:
+            repositories:
+              - services/payments
+              - services/billing
+            tag: 1.x
+            file: config.json
+        requeueAfterSeconds: 1800
+  template:
+    metadata:
+      name: 'service-{{ .name | base }}'
+      annotations:
+        example.com/tag: '{{ .tag }}'
+        example.com/digest: '{{ .digest }}'
+    spec:
+      project: default
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{ .name | base }}'
+      syncPolicy:
+        automated:
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+      source:
+        repoURL: registry.example.com/example/charts
+        chart: service
+        targetRevision: 2.x
+        helm:
+          releaseName: '{{ .name | base }}'
+          valuesObject:
+            service:
+              config: '{{ .content }}'

@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# A complete installation next to Argo CD: the generator, its secrets, the plugin reference and one set.
+# Replace the REPLACE values, then: kubectl apply -k examples
+namespace: argocd
+resources:
+  - ../deploy
+  - secrets.yaml
+  - plugin.yaml
+  - applicationset.yaml
+images:
+  - name: ghcr.io/pelotech/argocd-oci-generator
+    newTag: 0.1.0
+patches:
+  # Only for a registry with a private CA: mount its bundle and point the generator at it.
+  - path: private-ca-patch.yaml
