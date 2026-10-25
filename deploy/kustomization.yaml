@@ -1,0 +1,7 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# The generator Deployment and its Service. The consumer sets the namespace, the registry environment,
+# the Secret with the tokens and, when the registry has a private CA, SSL_CERT_FILE with its bundle.
+resources:
+  - deployment.yaml
+  - service.yaml

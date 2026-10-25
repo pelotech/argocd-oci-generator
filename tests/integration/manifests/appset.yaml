@@ -1,0 +1,60 @@
+# The set under test: the plugin reference, and one Application per named artifact, sourced from that same
+# artifact. The artifact's tag, digest and config.json land in annotations the test reads back.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-oci-generator
+  namespace: argocd
+data:
+  baseUrl: http://argocd-oci-generator.argocd.svc
+  token: '$argocd-oci-generator-plugin:token'
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: argocd-oci-generator-plugin
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: argocd
+stringData:
+  token: plugin-token-for-the-test
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: demo
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - plugin:
+        configMapRef:
+          name: argocd-oci-generator
+        input:
+          parameters:
+            repositories:
+              - app-001
+            file: config.json
+        requeueAfterSeconds: 60
+  template:
+    metadata:
+      name: 'demo-{{ .name }}'
+      annotations:
+        demo/tag: '{{ .tag }}'
+        demo/digest: '{{ .digest }}'
+        demo/version: '{{ index .annotations "org.opencontainers.image.version" }}'
+        demo/content: '{{ .content }}'
+    spec:
+      project: default
+      source:
+        repoURL: 'oci://registry.registry.svc/demo/{{ .name }}'
+        targetRevision: '{{ .tag }}'
+        path: .
+        directory:
+          include: '*.yaml'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: default
+      syncPolicy:
+        automated: {}

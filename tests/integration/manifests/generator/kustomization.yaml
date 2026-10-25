@@ -1,0 +1,26 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# The deploy base in argocd, on the image the test builds, trusting the registry's certificate.
+namespace: argocd
+resources:
+  - ../../../../deploy
+images:
+  - name: ghcr.io/pelotech/argocd-oci-generator
+    newTag: test
+patches:
+  - target:
+      kind: Deployment
+      name: argocd-oci-generator
+    patch: |-
+      - op: add
+        path: /spec/template/spec/volumes
+        value:
+          - name: registry-ca
+            secret:
+              secretName: registry-ca
+      - op: add
+        path: /spec/template/spec/containers/0/volumeMounts
+        value:
+          - name: registry-ca
+            mountPath: /etc/ssl/custom
+            readOnly: true

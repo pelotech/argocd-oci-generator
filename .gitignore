@@ -1,0 +1,4 @@
+# the binary go build drops in the root
+/argocd-oci-generator
+coverage.out
+.idea/
