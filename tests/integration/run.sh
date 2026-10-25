@@ -103,6 +103,13 @@ annotation() { kubectl -n argocd get application demo-app-001 -o jsonpath="{.met
 # A comparison that failed once is retried on refresh; the loop asks for one each time it looks.
 wait_for 600 "the Application to sync" bash -c \
   'kubectl -n argocd annotate application demo-app-001 argocd.argoproj.io/refresh=normal --overwrite >/dev/null; [[ $(kubectl -n argocd get application demo-app-001 -o jsonpath="{.status.sync.status}/{.status.health.status}") == Synced/Healthy ]]' \
-  || { kubectl -n argocd get application demo-app-001 -o jsonpath='{.status.conditions}{"\n"}{.status.operationState.message}{"\n"}' >&2; exit 1; }
+  || {
+    kubectl -n argocd get application demo-app-001 -o jsonpath='{.status.conditions}{"\n"}{.status.operationState.message}{"\n"}' >&2
+    echo "== pods" >&2; kubectl -n argocd get pods >&2
+    echo "== repo-server" >&2; kubectl -n argocd logs deployment/argocd-repo-server --tail=300 2>&1 | grep -iE 'oci|registry|error|warn|demo' | tail -40 >&2
+    echo "== application-controller" >&2; kubectl -n argocd logs statefulset/argocd-application-controller --tail=300 2>&1 | grep -iE 'demo-app-001|oci|error' | tail -30 >&2
+    echo "== generator" >&2; kubectl -n argocd logs deployment/argocd-oci-generator --tail=50 >&2
+    exit 1
+  }
 [[ $(kubectl get configmap demo-app-001 -o jsonpath='{.data.from}') == "the artifact" ]]
 echo "ok: demo-app-001 generated from registry.registry.svc/demo/app-001:1.0.0 and synced"
